@@ -26,7 +26,7 @@ function cfn-delete {
 }
 
 function cfn-status {
-    aws cloudformation list-stacks | jq ".StackSummaries | map(select(.StackName==\"$1\")) | map([.CreationTime,.StackStatus]) | map(join(\" \")) | join(\"\n\")" -r | boxes -d stone
+    aws cloudformation list-stacks | jq ".StackSummaries | map(select(.StackName==\"$1\")) | map([.CreationTime,.StackStatus]) | map(join(\" \")) | join(\"\n\")" -r
 }
 
 function cfn-by-status {
@@ -59,7 +59,7 @@ function cfn-template {
 }
 
 function cfn-endpoints {
-    cfn-resources $1 | jq '.StackResourceSummaries | map(select(.ResourceType=="AWS::Route53::RecordSet")) | map(.PhysicalResourceId)[] ' -r | boxes -d stone
+    cfn-resources $1 | jq '.StackResourceSummaries | map(select(.ResourceType=="AWS::Route53::RecordSet")) | map(.PhysicalResourceId)[] ' -r 
 }
 
 function cfn-asg {
@@ -85,12 +85,12 @@ function ec2-desc {
 }
 
 function asg-instances {
-    aws ec2 describe-instances --filter Name=tag:aws:autoscaling:groupName,Values=$1 | jq ".Reservations[].Instances[] | {State: .State.Name, PrivateIp: .NetworkInterfaces[].PrivateIpAddresses[].PrivateIpAddress, InstanceId: .InstanceId, ImageId: .ImageId}"
+    aws ec2 describe-instances --filter Name=tag:aws:autoscaling:groupName,Values=$1 | jq ".Reservations[].Instances[] | {State: .State.Name, PrivateIp: .NetworkInterfaces[].PrivateIpAddresses[].PrivateIpAddress, InstanceId: .InstanceId, ImageId: .ImageId, SubnetId: .NetworkInterfaces[].SubnetId}"
 }
 
 
 function latest-metrics {
-    start_time=`gdate +"%Y-%m-%dT%H:%M:%S.%3N%z" -d "10 minutes ago"`
+    start_time=`gdate +"%Y-%m-%dT%H:%M:%S.%3N%z" -d "80 minutes ago"`
     end_time=`gdate +"%Y-%m-%dT%H:%M:%S.%3N%z"`
     aws  cloudwatch  get-metric-statistics  --metric-name $2  --start-time  $start_time   --end-time   $end_time  --period 60 --namespace $1 --statistics Maximum | jq .
 }
@@ -134,4 +134,12 @@ function subnet-describe {
 function asg-instance-terminate {
     confirm
     aws autoscaling terminate-instance-in-auto-scaling-group --instance-id $1 --no-should-decrement-desired-capacity
+}
+
+function s3-bucket-grep {
+    aws s3 ls | grep $1
+}
+
+function emr-runtime {
+     aws emr describe-cluster --cluster-id $1 | jq "(.Cluster.Status.Timeline.EndDateTime - .Cluster.Status.Timeline.ReadyDateTime) / 60 / 60"
 }
